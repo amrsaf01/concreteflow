@@ -1,479 +1,306 @@
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { connectDB, getDB } from './database.js';
 
 const app = express();
-const PORT = 3001;
-const DB_PATH = path.join(__dirname, 'db.json');
+const PORT = process.env.PORT || 3001;
 
-async function readDb() {
-    try {
-        const data = await fs.readFile(DB_PATH, 'utf-8');
-        const parsed = JSON.parse(data);
-        return {
-            orders: [],
-            vehicles: [],
-            users: [],
-            customers: [],
-            products: [],
-            priceLists: [],
-            ...parsed
-        };
-    } catch (error) {
-        console.error('Error reading DB:', error);
-        return {
-            orders: [],
-            vehicles: [],
-            users: [],
-            customers: [],
-            products: [],
-            priceLists: []
-        };
-    }
-}
-
-async function writeDb(data) {
-    await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
-}
+// Initialize MongoDB connection
+await connectDB();
 
 app.use(cors());
 app.use(express.json());
-app.get('/api/data', async (req, res) => {
-    const data = await readDb();
-    res.json(data);
-});
 
-// Get Orders
-app.get('/api/orders', async (req, res) => {
-    const data = await readDb();
-    res.json(data.orders);
-});
+// Helper function to get collection
+const getCollection = (name) => getDB().collection(name);
 
-// Create Order
-app.post('/api/orders', async (req, res) => {
-    const data = await readDb();
-    const orderCount = data.orders.length;
-    const newOrder = {
-        id: `ORD-${Date.now()}`,
-        orderNumber: `${1000 + orderCount + 1}`,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        ...req.body
-    };
-    data.orders.push(newOrder);
-    await writeDb(data);
-    res.status(201).json(newOrder);
-});
-
-// Update Order
-app.put('/api/orders/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-    const updates = req.body;
-
-    const index = data.orders.findIndex(o => o.id === id);
-    if (index !== -1) {
-        data.orders[index] = { ...data.orders[index], ...updates };
-        await writeDb(data);
-        res.json(data.orders[index]);
-    } else {
-        res.status(404).json({ error: 'Order not found' });
-    }
-});
-
-// Get Vehicles
-app.get('/api/vehicles', async (req, res) => {
-    const data = await readDb();
-    res.json(data.vehicles);
-});
-
-// Update Vehicle
-app.put('/api/vehicles/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-    const updates = req.body;
-
-    const index = data.vehicles.findIndex(v => v.id === id);
-    if (index !== -1) {
-        data.vehicles[index] = { ...data.vehicles[index], ...updates };
-        await writeDb(data);
-        res.json(data.vehicles[index]);
-    } else {
-        res.status(404).json({ error: 'Vehicle not found' });
-    }
-});
-
-// Create Vehicle
-app.post('/api/vehicles', async (req, res) => {
-    const data = await readDb();
-    const newVehicle = {
-        id: `V-${Date.now()}`, // Simple ID generation
-        status: 'available',
-        ...req.body
-    };
-    data.vehicles.push(newVehicle);
-    await writeDb(data);
-    res.status(201).json(newVehicle);
-});
-
-// Delete Vehicle
-app.delete('/api/vehicles/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-
-    const initialLength = data.vehicles.length;
-    data.vehicles = data.vehicles.filter(v => v.id !== id);
-
-    if (data.vehicles.length < initialLength) {
-        await writeDb(data);
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Vehicle not found' });
-    }
-});
-
-// Reset Data (for testing)
-app.post('/api/reset', async (req, res) => {
-    const initialData = {
-        orders: [
-            {
-                id: "ORD-001",
-                companyName: "בנייה נכונה בע״מ",
-                orderNumber: "1001",
-                quantity: 12,
-                grade: "B30",
-                address: "רחוב הירקון 45, תל אביב",
-                deliveryTime: new Date().toISOString().split('T')[0] + "T08:00:00",
-                status: "en_route",
-                pumpRequired: true,
-                assignedVehicleId: "V-001"
-            },
-            {
-                id: "ORD-002",
-                companyName: "אשטרום בע״מ",
-                orderNumber: "1002",
-                quantity: 8,
-                grade: "B40",
-                address: "שדרות רוטשילד 10, תל אביב",
-                deliveryTime: new Date().toISOString().split('T')[0] + "T10:30:00",
-                status: "pending",
-                pumpRequired: false
-            }
-        ],
-        vehicles: [
-            {
-                id: "V-001",
-                vehicleNumber: "99-123-45",
-                driverName: "יוסי כהן",
-                status: "en_route",
-                type: "mixer",
-                capacity: 12,
-                currentOrderId: "ORD-001"
-            },
-            {
-                id: "V-002",
-                vehicleNumber: "88-555-22",
-                driverName: "דני לוי",
-                status: "available",
-                type: "mixer",
-                capacity: 10
-            },
-            {
-                id: "V-003",
-                vehicleNumber: "77-999-11",
-                driverName: "אבי ביטון",
-                status: "at_site",
-                type: "pump",
-                capacity: 0,
-                currentOrderId: "ORD-003"
-            },
-            {
-                id: "V-004",
-                vehicleNumber: "66-111-33",
-                driverName: "משה דיין",
-                status: "maintenance",
-                type: "mixer",
-                capacity: 12
-            }
-        ],
-        users: [
-            {
-                id: "U-001",
-                username: "admin",
-                name: "Admin User",
-                role: "owner",
-                password: "admin123",
-                lastLogin: ""
-            }
-        ]
-    };
-    await writeDb(initialData);
-    res.json(initialData);
-});
-
-// Login
-// Login
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    const data = await readDb();
-
-    const user = data.users?.find(u => u.username === username && u.password === password);
-
-    if (user) {
-        // Update last login
-        user.lastLogin = new Date().toISOString();
-        await writeDb(data);
-
-        // Return user without password
-        const { password, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
-    } else {
-        res.status(401).json({ error: 'Invalid credentials' });
-    }
-});
-
-// --- User Management ---
-
-// Get Users
+// ============ USERS ============
 app.get('/api/users', async (req, res) => {
-    const data = await readDb();
-    // Return users without passwords
-    const safeUsers = data.users?.map(({ password, ...u }) => u) || [];
-    res.json(safeUsers);
+    try {
+        const users = await getCollection('users').find({}).project({ password: 0 }).toArray();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Create User
 app.post('/api/users', async (req, res) => {
-    const data = await readDb();
-    const newUser = {
-        id: `U-${Date.now()}`,
-        lastLogin: null,
-        ...req.body
-    };
-
-    if (!data.users) data.users = [];
-
-    // Check if username exists
-    if (data.users.find(u => u.username === newUser.username)) {
-        return res.status(400).json({ error: 'Username already exists' });
+    try {
+        const newUser = {
+            id: `U-${Date.now()}`,
+            ...req.body,
+            lastLogin: null
+        };
+        await getCollection('users').insertOne(newUser);
+        const { password, ...userWithoutPassword } = newUser;
+        res.json(userWithoutPassword);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-
-    data.users.push(newUser);
-    await writeDb(data);
-
-    const { password, ...safeUser } = newUser;
-    res.status(201).json(safeUser);
 });
 
-// Update User
 app.put('/api/users/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-    const updates = req.body;
-
-    if (!data.users) return res.status(404).json({ error: 'User not found' });
-
-    const index = data.users.findIndex(u => u.id === id);
-    if (index !== -1) {
-        // If updating password, keep it, otherwise preserve existing
-        const updatedUser = { ...data.users[index], ...updates };
-
-        // Don't allow removing password if not supplied
-        if (!updates.password) {
-            updatedUser.password = data.users[index].password;
-        }
-
-        data.users[index] = updatedUser;
-        await writeDb(data);
-
-        const { password, ...safeUser } = updatedUser;
-        res.json(safeUser);
-    } else {
-        res.status(404).json({ error: 'User not found' });
+    try {
+        const { id } = req.params;
+        await getCollection('users').updateOne({ id }, { $set: req.body });
+        const user = await getCollection('users').findOne({ id }, { projection: { password: 0 } });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Delete User
 app.delete('/api/users/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-
-    if (!data.users) return res.status(404).json({ error: 'User not found' });
-
-    const initialLength = data.users.length;
-    data.users = data.users.filter(u => u.id !== id);
-
-    if (data.users.length < initialLength) {
-        await writeDb(data);
+    try {
+        const { id } = req.params;
+        await getCollection('users').deleteOne({ id });
         res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'User not found' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
-// --- CRM: Customers ---
+// ============ LOGIN ============
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await getCollection('users').findOne({ username, password });
 
+        if (user) {
+            await getCollection('users').updateOne(
+                { id: user.id },
+                { $set: { lastLogin: new Date().toISOString() } }
+            );
+            const { password: _, ...userWithoutPassword } = user;
+            res.json({ user: userWithoutPassword });
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ ORDERS ============
+app.get('/api/orders', async (req, res) => {
+    try {
+        const orders = await getCollection('orders').find({}).toArray();
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/orders', async (req, res) => {
+    try {
+        const newOrder = {
+            id: `ORD-${Date.now()}`,
+            ...req.body,
+            createdAt: new Date().toISOString()
+        };
+        await getCollection('orders').insertOne(newOrder);
+        res.json(newOrder);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/orders/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await getCollection('orders').updateOne({ id }, { $set: req.body });
+        const order = await getCollection('orders').findOne({ id });
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await getCollection('orders').deleteOne({ id });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ VEHICLES ============
+app.get('/api/vehicles', async (req, res) => {
+    try {
+        const vehicles = await getCollection('vehicles').find({}).toArray();
+        res.json(vehicles);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/vehicles', async (req, res) => {
+    try {
+        const newVehicle = {
+            id: `V-${Date.now()}`,
+            ...req.body
+        };
+        await getCollection('vehicles').insertOne(newVehicle);
+        res.json(newVehicle);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/vehicles/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await getCollection('vehicles').updateOne({ id }, { $set: req.body });
+        const vehicle = await getCollection('vehicles').findOne({ id });
+        res.json(vehicle);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/vehicles/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await getCollection('vehicles').deleteOne({ id });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ CUSTOMERS ============
 app.get('/api/customers', async (req, res) => {
-    const data = await readDb();
-    res.json(data.customers || []);
+    try {
+        const customers = await getCollection('customers').find({}).toArray();
+        res.json(customers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/customers', async (req, res) => {
-    const data = await readDb();
-    const newCustomer = {
-        id: `C-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        ...req.body
-    };
-    if (!data.customers) data.customers = [];
-    data.customers.push(newCustomer);
-    await writeDb(data);
-    res.status(201).json(newCustomer);
+    try {
+        const newCustomer = {
+            id: `C-${Date.now()}`,
+            ...req.body,
+            createdAt: new Date().toISOString()
+        };
+        await getCollection('customers').insertOne(newCustomer);
+        res.json(newCustomer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.put('/api/customers/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-    const updates = req.body;
-
-    if (!data.customers) return res.status(404).json({ error: 'Customer not found' });
-
-    const index = data.customers.findIndex(c => c.id === id);
-    if (index !== -1) {
-        data.customers[index] = { ...data.customers[index], ...updates };
-        await writeDb(data);
-        res.json(data.customers[index]);
-    } else {
-        res.status(404).json({ error: 'Customer not found' });
+    try {
+        const { id } = req.params;
+        await getCollection('customers').updateOne({ id }, { $set: req.body });
+        const customer = await getCollection('customers').findOne({ id });
+        res.json(customer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
 app.delete('/api/customers/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-
-    if (!data.customers) return res.status(404).json({ error: 'Customer not found' });
-
-    const initialLength = data.customers.length;
-    data.customers = data.customers.filter(c => c.id !== id);
-
-    if (data.customers.length < initialLength) {
-        await writeDb(data);
+    try {
+        const { id } = req.params;
+        await getCollection('customers').deleteOne({ id });
         res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Customer not found' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
-// --- CRM: Products ---
-
+// ============ PRODUCTS ============
 app.get('/api/products', async (req, res) => {
-    const data = await readDb();
-    res.json(data.products || []);
+    try {
+        const products = await getCollection('products').find({}).toArray();
+        res.json(products);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/products', async (req, res) => {
-    const data = await readDb();
-    const newProduct = {
-        id: `P-${Date.now()}`,
-        ...req.body
-    };
-    if (!data.products) data.products = [];
-    data.products.push(newProduct);
-    await writeDb(data);
-    res.status(201).json(newProduct);
+    try {
+        const newProduct = {
+            id: `P-${Date.now()}`,
+            ...req.body
+        };
+        await getCollection('products').insertOne(newProduct);
+        res.json(newProduct);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.put('/api/products/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-    const updates = req.body;
-
-    if (!data.products) return res.status(404).json({ error: 'Product not found' });
-
-    const index = data.products.findIndex(p => p.id === id);
-    if (index !== -1) {
-        data.products[index] = { ...data.products[index], ...updates };
-        await writeDb(data);
-        res.json(data.products[index]);
-    } else {
-        res.status(404).json({ error: 'Product not found' });
+    try {
+        const { id } = req.params;
+        await getCollection('products').updateOne({ id }, { $set: req.body });
+        const product = await getCollection('products').findOne({ id });
+        res.json(product);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-
-    if (!data.products) return res.status(404).json({ error: 'Product not found' });
-
-    const initialLength = data.products.length;
-    data.products = data.products.filter(p => p.id !== id);
-
-    if (data.products.length < initialLength) {
-        await writeDb(data);
+    try {
+        const { id } = req.params;
+        await getCollection('products').deleteOne({ id });
         res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Product not found' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
-// --- CRM: Price Lists ---
-
+// ============ PRICE LISTS ============
 app.get('/api/price-lists', async (req, res) => {
-    const data = await readDb();
-    res.json(data.priceLists || []);
+    try {
+        const priceLists = await getCollection('priceLists').find({}).toArray();
+        res.json(priceLists);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.post('/api/price-lists', async (req, res) => {
-    const data = await readDb();
-    const newList = {
-        id: `PL-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        ...req.body
-    };
-    if (!data.priceLists) data.priceLists = [];
-    data.priceLists.push(newList);
-    await writeDb(data);
-    res.status(201).json(newList);
+    try {
+        const newPriceList = {
+            id: `PL-${Date.now()}`,
+            ...req.body,
+            createdAt: new Date().toISOString()
+        };
+        await getCollection('priceLists').insertOne(newPriceList);
+        res.json(newPriceList);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.put('/api/price-lists/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-    const updates = req.body;
-
-    if (!data.priceLists) return res.status(404).json({ error: 'Price list not found' });
-
-    const index = data.priceLists.findIndex(pl => pl.id === id);
-    if (index !== -1) {
-        data.priceLists[index] = { ...data.priceLists[index], ...updates };
-        await writeDb(data);
-        res.json(data.priceLists[index]);
-    } else {
-        res.status(404).json({ error: 'Price list not found' });
+    try {
+        const { id } = req.params;
+        await getCollection('priceLists').updateOne({ id }, { $set: req.body });
+        const priceList = await getCollection('priceLists').findOne({ id });
+        res.json(priceList);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
 app.delete('/api/price-lists/:id', async (req, res) => {
-    const data = await readDb();
-    const { id } = req.params;
-
-    if (!data.priceLists) return res.status(404).json({ error: 'Price list not found' });
-
-    const initialLength = data.priceLists.length;
-    data.priceLists = data.priceLists.filter(pl => pl.id !== id);
-
-    if (data.priceLists.length < initialLength) {
-        await writeDb(data);
+    try {
+        const { id } = req.params;
+        await getCollection('priceLists').deleteOne({ id });
         res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Price list not found' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
