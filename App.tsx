@@ -10,6 +10,7 @@ import { BotSimulator } from './components/BotSimulator';
 import { DriversList } from './components/DriversList';
 import { CustomerList } from './components/crm/CustomerList';
 import { FinancialManager } from './components/finance/FinancialManager';
+import { PublicOrderPage } from './components/PublicOrderPage';
 import { api } from './src/services/api';
 import { Order, Vehicle } from './types';
 
@@ -417,6 +418,13 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  // Check if we're on the public order page
+  const isPublicOrderPage = window.location.pathname === '/order';
+
+  if (isPublicOrderPage) {
+    return <PublicOrderPage />;
+  }
+
   return (
     <AuthProvider>
       <AuthenticatedApp />
