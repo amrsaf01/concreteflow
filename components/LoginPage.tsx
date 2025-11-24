@@ -82,9 +82,9 @@ export const LoginPage: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            {isSubmitting ? 'מתחבר...' : 'התחבר למערכת'}
+                            {isSubmitting ? 'מתחבר...' : 'התחבר למערכת (1.0.7)'}
                         </button>
                     </form>
                 </div>
@@ -93,7 +93,7 @@ export const LoginPage: React.FC = () => {
                 <div className="bg-slate-50 p-4 text-center text-xs text-slate-500 border-t border-slate-100">
                     &copy; {new Date().getFullYear()} ConcreteFlow. כל הזכויות שמורות.
                     <br />
-                    <span className="text-orange-500 font-medium">גרסה: 1.0.6 (עדכון אחרון: {new Date().toLocaleTimeString()})</span>
+                    <span className="text-purple-600 font-medium">גרסה: 1.0.7 (בדיקת צבע)</span>
                 </div>
             </div>
         </div>
