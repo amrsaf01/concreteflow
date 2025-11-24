@@ -20,7 +20,7 @@ import { WaitingQueueWidget } from './WaitingQueueWidget';
 interface DashboardProps {
   orders: Order[];
   vehicles: Vehicle[];
-  onApproveOrder: (orderId: string, vehicleId: string) => void;
+  onApproveOrder: (orderId: string, vehicleIds: string[]) => void;
   onRejectOrder: (orderId: string) => void;
   onUpdateOrder: (orderId: string, updates: Partial<Order>) => void;
   onAddToQueue: (orderId: string) => void;
@@ -73,9 +73,9 @@ export function Dashboard({
     setIsAssignmentModalOpen(true);
   };
 
-  const handleConfirmAssignment = (vehicleId: string) => {
+  const handleConfirmAssignment = (vehicleIds: string[]) => {
     if (selectedOrderForAssignment) {
-      onApproveOrder(selectedOrderForAssignment.id, vehicleId);
+      onApproveOrder(selectedOrderForAssignment.id, vehicleIds);
       setIsAssignmentModalOpen(false);
       setSelectedOrderForAssignment(null);
     }

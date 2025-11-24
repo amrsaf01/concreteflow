@@ -24,7 +24,7 @@ export interface Order {
   deliveryTime: string; // ISO string
   pumpRequired: boolean;
   status: OrderStatus;
-  assignedVehicleId?: string;
+  assignedVehicleIds?: string[];
   notes?: string;
   createdAt: string;
 

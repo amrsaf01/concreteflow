@@ -51,23 +51,28 @@ function AuthenticatedApp() {
     }
   };
 
-  const handleApproveOrder = async (orderId: string, vehicleId: string) => {
+  const handleApproveOrder = async (orderId: string, vehicleIds: string[]) => {
     try {
       // 1. Update Order
       const updatedOrder = await api.updateOrder(orderId, {
         status: 'en_route',
-        assignedVehicleId: vehicleId
+        assignedVehicleIds: vehicleIds
       });
 
-      // 2. Update Vehicle
-      const updatedVehicle = await api.updateVehicle(vehicleId, {
-        status: 'en_route',
-        currentOrderId: orderId
-      });
+      // 2. Update Vehicles
+      const updatedVehicles = await Promise.all(vehicleIds.map(id =>
+        api.updateVehicle(id, {
+          status: 'en_route',
+          currentOrderId: orderId
+        })
+      ));
 
       // 3. Update Local State
       setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
-      setVehicles(prev => prev.map(v => v.id === vehicleId ? updatedVehicle : v));
+      setVehicles(prev => {
+        const updatedMap = new Map(updatedVehicles.map(v => [v.id, v]));
+        return prev.map(v => updatedMap.get(v.id) || v);
+      });
     } catch (error) {
       console.error('Failed to approve order:', error);
     }
@@ -94,8 +99,8 @@ function AuthenticatedApp() {
       // but here we just update the order state.
       setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
 
-      // If assignedVehicleId changed, refresh vehicles to be safe or handle optimistically
-      if (updates.assignedVehicleId) {
+      // If assignedVehicleIds changed, refresh vehicles to be safe or handle optimistically
+      if (updates.assignedVehicleIds) {
         const vehiclesData = await api.getVehicles();
         setVehicles(vehiclesData);
       }
