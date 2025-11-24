@@ -290,18 +290,22 @@ function AuthenticatedApp() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {view === 'landing' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
-            <button
-              onClick={() => setView('manager')}
-              className="group relative overflow-hidden bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-500/20 text-right"
-            >
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 group-hover:w-2 transition-all" />
-              <div className="bg-blue-50 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <User className="text-blue-600" size={32} />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">מנהל משמרת</h2>
-              <p className="text-slate-500 text-sm">ניהול הזמנות, שיבוץ רכבים וצפייה בדוחות בזמן אמת</p>
-            </button>
+            {/* Manager Dashboard - Only for owners and managers */}
+            {(user.role === 'owner' || user.role === 'manager') && (
+              <button
+                onClick={() => setView('manager')}
+                className="group relative overflow-hidden bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-500/20 text-right"
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 group-hover:w-2 transition-all" />
+                <div className="bg-blue-50 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <User className="text-blue-600" size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">מנהל משמרת</h2>
+                <p className="text-slate-500 text-sm">ניהול הזמנות, שיבוץ רכבים וצפייה בדוחות בזמן אמת</p>
+              </button>
+            )}
 
+            {/* Driver App - For all users */}
             <button
               onClick={() => setView('driver')}
               className="group relative overflow-hidden bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-emerald-500/20 text-right"
@@ -314,17 +318,20 @@ function AuthenticatedApp() {
               <p className="text-slate-500 text-sm">קבלת משימות, עדכון סטטוס וניווט ליעדים</p>
             </button>
 
-            <button
-              onClick={() => setView('customer')}
-              className="group relative overflow-hidden bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-purple-500/20 text-right"
-            >
-              <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 group-hover:w-2 transition-all" />
-              <div className="bg-purple-50 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <MessageSquare className="text-purple-600" size={32} />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">לקוח / בוט</h2>
-              <p className="text-slate-500 text-sm">ביצוע הזמנות חדשות ובירור סטטוס מול הבוט החכם</p>
-            </button>
+            {/* Bot Simulator - Only for owners and managers */}
+            {(user.role === 'owner' || user.role === 'manager') && (
+              <button
+                onClick={() => setView('customer')}
+                className="group relative overflow-hidden bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-purple-500/20 text-right"
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 group-hover:w-2 transition-all" />
+                <div className="bg-purple-50 w-14 h-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <MessageSquare className="text-purple-600" size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 mb-2">לקוח / בוט</h2>
+                <p className="text-slate-500 text-sm">ביצוע הזמנות חדשות ובירור סטטוס מול הבוט החכם</p>
+              </button>
+            )}
           </div>
         )}
 
