@@ -100,7 +100,14 @@ app.get('/api/orders', async (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
     const db = await readDB();
-    const newOrder = { ...req.body, id: `ORD-${Date.now()}` };
+    const orderNumber = (db.orders || []).length + 1000; // Start from 1000
+    const newOrder = {
+        ...req.body,
+        id: `ORD-${Date.now()}`,
+        orderNumber: orderNumber.toString(),
+        status: req.body.status || 'pending', // Default to pending if not specified
+        createdAt: new Date().toISOString()
+    };
     db.orders = [...(db.orders || []), newOrder];
     await writeDB(db);
     res.json(newOrder);
