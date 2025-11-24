@@ -71,22 +71,12 @@
   ],
   "users": [
     {
-      "id": "U-1763942573716",
-      "lastLogin": null,
-      "username": "autodriver",
-      "password": "123",
-      "name": "AutoDriver",
-      "role": "driver"
-    }
-  ],
-  "users": [
-    {
       "id": "U-001",
       "username": "admin",
       "name": "Admin User",
       "role": "owner",
       "password": "admin123",
-      "lastLogin": null
+      "lastLogin": "2025-11-24T02:32:42.942Z"
     },
     {
       "id": "U-1763942573716",
@@ -95,6 +85,14 @@
       "name": "AutoDriver",
       "role": "driver",
       "password": "123"
+    },
+    {
+      "id": "U-1763951923880",
+      "lastLogin": null,
+      "username": "d_01",
+      "password": "driver1",
+      "name": "Amr",
+      "role": "driver"
     }
   ],
   "customers": [
