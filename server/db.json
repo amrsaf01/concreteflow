@@ -1,0 +1,121 @@
+{
+  "orders": [
+    {
+      "id": "ORD-1763942099704",
+      "orderNumber": "1001",
+      "status": "completed",
+      "createdAt": "2025-11-23T23:54:59.704Z",
+      "companyName": "סםדי",
+      "siteContactName": "עמר",
+      "siteContactPhone": "050-0000000",
+      "supervisorName": "עמר",
+      "supervisorPhone": "050-0000000",
+      "quantity": 33,
+      "grade": "B30",
+      "address": "דרך מנחם בגין 144, תל אביב",
+      "deliveryTime": "2025-11-23T23:54:59.698Z",
+      "pumpRequired": true,
+      "assignedVehicleId": "V-1763941981139"
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "V-1763941981139",
+      "status": "available",
+      "vehicleNumber": "123245",
+      "type": "mixer",
+      "driverName": "נהג1",
+      "capacity": 10,
+      "currentOrderId": "ORD-1763942099704"
+    },
+    {
+      "id": "V-1763941988559",
+      "status": "available",
+      "vehicleNumber": "222222",
+      "type": "mixer",
+      "driverName": "נהג2",
+      "capacity": 10
+    },
+    {
+      "id": "V-1763941996961",
+      "status": "available",
+      "vehicleNumber": "333333",
+      "type": "mixer",
+      "driverName": "נהג3",
+      "capacity": 10
+    },
+    {
+      "id": "V-1763942006710",
+      "status": "available",
+      "vehicleNumber": "44444",
+      "type": "mixer",
+      "driverName": "נגה4",
+      "capacity": 10
+    },
+    {
+      "id": "V-1763942047189",
+      "status": "available",
+      "vehicleNumber": "55555",
+      "type": "pump",
+      "driverName": "משיבה",
+      "capacity": 10
+    },
+    {
+      "id": "V-1763942057642",
+      "status": "available",
+      "vehicleNumber": "66666",
+      "type": "pump",
+      "driverName": "משיבה 2",
+      "capacity": 10
+    }
+  ],
+  "users": [
+    {
+      "id": "U-1763942573716",
+      "lastLogin": null,
+      "username": "autodriver",
+      "password": "123",
+      "name": "AutoDriver",
+      "role": "driver"
+    }
+  ],
+  "customers": [
+    {
+      "id": "C-1763942238927",
+      "createdAt": "2025-11-23T23:57:18.927Z",
+      "name": "ספדי עמר ",
+      "contactPerson": "עמר",
+      "phone": "0526500336",
+      "email": "AMRSAF@GMAIL.COM",
+      "address": "מגדל שמס ",
+      "notes": ""
+    },
+    {
+      "id": "C-1763942493441",
+      "createdAt": "2025-11-24T00:01:33.441Z",
+      "name": "AutoClient",
+      "contactPerson": "Test",
+      "phone": "123",
+      "email": "",
+      "address": "Test",
+      "notes": ""
+    }
+  ],
+  "products": [
+    {
+      "id": "P-1763942191082",
+      "name": "B30",
+      "type": "concrete",
+      "unit": "m3",
+      "basePrice": 500
+    },
+    {
+      "id": "P-1763942543561",
+      "name": "AutoConcrete",
+      "type": "concrete",
+      "unit": "m3",
+      "basePrice": 100
+    }
+  ],
+  "priceLists": []
+}
