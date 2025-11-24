@@ -92,6 +92,8 @@ export const LoginPage: React.FC = () => {
                 {/* Footer */}
                 <div className="bg-slate-50 p-4 text-center text-xs text-slate-500 border-t border-slate-100">
                     &copy; {new Date().getFullYear()} ConcreteFlow. כל הזכויות שמורות.
+                    <br />
+                    <span className="text-orange-500 font-medium">גרסה: 1.0.5 (MongoDB Production)</span>
                 </div>
             </div>
         </div>
