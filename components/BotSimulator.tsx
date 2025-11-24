@@ -60,24 +60,24 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
     setMessages([]);
     setStep('INIT');
     setTempOrder({ siteContactPhone: currentPersona.phone });
-    
+
     // Identify User logic
     const knownClient = KNOWN_CLIENTS[currentPersona.phone];
-    
+
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
-      
+
       if (knownClient) {
         // Known Client Flow (VIP)
-        setTempOrder(prev => ({ 
-          ...prev, 
+        setTempOrder(prev => ({
+          ...prev,
           companyName: knownClient.company,
           siteContactName: knownClient.siteName,
           supervisorName: knownClient.supervisorName,
           supervisorPhone: knownClient.supervisorPhone
         }));
-        
+
         addMessage(`שלום ${knownClient.siteName} מחברת ${knownClient.company}! 👋\nשמח לראות אותך שוב.\n\nכמה קוב בטון נדרש להיום?`, 'bot');
         setStep('QTY');
       } else {
@@ -89,18 +89,18 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
   };
 
   const addMessage = (text: string, sender: 'bot' | 'user', type: 'text' | 'audio' = 'text') => {
-    setMessages(prev => [...prev, { 
-      id: Date.now().toString(), 
-      text, 
-      sender, 
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      text,
+      sender,
       timestamp: new Date(),
       status: sender === 'user' ? 'sent' : 'read',
       type
     }]);
-    
+
     if (sender === 'user') {
       setTimeout(() => {
-        setMessages(current => current.map(m => 
+        setMessages(current => current.map(m =>
           m.id === Date.now().toString() ? { ...m, status: 'read' } : m
         ));
       }, 1000);
@@ -121,7 +121,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
   const handleSend = (textOverride?: string) => {
     const textToSend = textOverride || input;
     if (!textToSend.trim()) return;
-    
+
     addMessage(textToSend, 'user');
     setInput('');
     setShowQuickReplies([]);
@@ -131,7 +131,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
 
   const processUserInput = (userText: string) => {
     const lowerText = userText.toLowerCase();
-    
+
     switch (step) {
       case 'IDENTIFY_NAME':
         setTempOrder(prev => ({ ...prev, siteContactName: userText }));
@@ -147,12 +147,12 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
         // If we came from COMPANY step, the user input is actually the Supervisor Name or Quantity
         // This is a simplified logic flow. If text is a number, assume quantity. If text, assume supervisor name.
         const isNumber = /^\d+(\.\d+)?$/.test(userText) || /^\d+\s*קוב/.test(userText);
-        
+
         if (!tempOrder.quantity && !isNumber && step === 'QTY' && !tempOrder.supervisorName) {
-             // We just came from company, user entered supervisor name
-             setTempOrder(prev => ({ ...prev, supervisorName: userText, supervisorPhone: '050-0000000' })); // Mock phone for new user
-             simulateBotResponse(`תודה. רשמתי את ${userText} כמפקח.\n\nכמה קוב בטון תרצו להזמין?`, 'QTY');
-             return;
+          // We just came from company, user entered supervisor name
+          setTempOrder(prev => ({ ...prev, supervisorName: userText, supervisorPhone: '050-0000000' })); // Mock phone for new user
+          simulateBotResponse(`תודה. רשמתי את ${userText} כמפקח.\n\nכמה קוב בטון תרצו להזמין?`, 'QTY');
+          return;
         }
 
         const qtyMatch = userText.match(/\d+(\.\d+)?/);
@@ -161,13 +161,13 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
           return;
         }
         const qty = parseFloat(qtyMatch[0]);
-        
+
         if (qty <= 0 || qty > 100) {
-           simulateBotResponse("הכמות נראית לא הגיונית. אנא נסה שוב.", 'QTY');
+          simulateBotResponse("הכמות נראית לא הגיונית. אנא נסה שוב.", 'QTY');
         } else {
           setTempOrder(prev => ({ ...prev, quantity: qty }));
           simulateBotResponse(
-            `רשמתי ${qty} קוב. \nאיזה סוג בטון נדרש?`, 
+            `רשמתי ${qty} קוב. \nאיזה סוג בטון נדרש?`,
             'GRADE',
             [
               { label: 'B-30 (סטנדרט)', value: 'B30' },
@@ -183,32 +183,56 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
         const gradeMatch = userText.match(/[bב][\s-]?(\d+)/i) || userText.match(/(\d+)/);
         let grade: ConcreteGrade | null = null;
         if (gradeMatch) {
-           const num = gradeMatch[1];
-           const validGrades = ['20', '25', '30', '35', '40', '50'];
-           if (validGrades.includes(num)) {
-             grade = `B${num}` as ConcreteGrade;
-           }
+          const num = gradeMatch[1];
+          const validGrades = ['20', '25', '30', '35', '40', '50'];
+          if (validGrades.includes(num)) {
+            grade = `B${num}` as ConcreteGrade;
+          }
         }
         if (['B20', 'B25', 'B30', 'B35', 'B40', 'B50'].includes(userText.toUpperCase())) {
-            grade = userText.toUpperCase() as ConcreteGrade;
+          grade = userText.toUpperCase() as ConcreteGrade;
         }
 
         if (grade) {
-            setTempOrder(prev => ({ ...prev, grade }));
-            simulateBotResponse(
-              "מעולה. 📍 מה כתובת האתר ליציקה?", 
-              'ADDRESS',
-              [{ label: 'השתמש במיקום נוכחי', value: 'דרך מנחם בגין 144, תל אביב' }]
+          setTempOrder(prev => ({ ...prev, grade }));
+
+          // Request geolocation permission
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const { latitude, longitude } = position.coords;
+                const locationText = `מיקום: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                simulateBotResponse(
+                  "מעולה. 📍 מה כתובת האתר ליציקה?",
+                  'ADDRESS',
+                  [{ label: 'השתמש במיקום נוכחי', value: locationText }]
+                );
+              },
+              (error) => {
+                console.error('Geolocation error:', error);
+                simulateBotResponse(
+                  "מעולה. 📍 מה כתובת האתר ליציקה?",
+                  'ADDRESS',
+                  [{ label: 'הזן כתובת ידנית', value: '' }]
+                );
+              }
             );
+          } else {
+            simulateBotResponse(
+              "מעולה. 📍 מה כתובת האתר ליציקה?",
+              'ADDRESS',
+              [{ label: 'הזן כתובת ידנית', value: '' }]
+            );
+          }
         } else {
-            simulateBotResponse("אנא בחר דרגת בטון תקנית (B30, B40 וכו').", 'GRADE');
+          simulateBotResponse("אנא בחר דרגת בטון תקנית (B30, B40 וכו').", 'GRADE');
         }
         break;
 
       case 'ADDRESS':
         setTempOrder(prev => ({ ...prev, address: userText }));
         simulateBotResponse(
-          "מתי תרצו שנגיע? 🕒", 
+          "מתי תרצו שנגיע? 🕒",
           'TIME',
           [
             { label: 'עכשיו / דחוף', value: 'בהקדם האפשרי' },
@@ -221,7 +245,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
       case 'TIME':
         setTempOrder(prev => ({ ...prev, deliveryTime: userText }));
         simulateBotResponse(
-          "האם נדרשת משאבת בטון לפריקה? 🏗️", 
+          "האם נדרשת משאבת בטון לפריקה? 🏗️",
           'PUMP',
           [
             { label: 'כן, צריך משאבה', value: 'כן' },
@@ -233,7 +257,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
       case 'PUMP':
         const isYes = ['כן', 'yes', 'צריך', 'חיובי', 'עם'].some(w => lowerText.includes(w));
         setTempOrder(prev => ({ ...prev, pumpRequired: isYes }));
-        
+
         const summary = `
 *סיכום הזמנה:* 📝
 🏢 חברה: *${tempOrder.companyName}*
@@ -266,9 +290,9 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
 אנו נשלח עדכון ברגע שישובץ נהג.`;
 
           simulateBotResponse(confirmationMsg, 'DONE', [
-             { label: 'הזמנה חדשה', value: 'הזמנה חדשה' }
+            { label: 'הזמנה חדשה', value: 'הזמנה חדשה' }
           ]);
-          
+
           if (tempOrder.quantity && tempOrder.grade) {
             onOrderCreated({
               companyName: tempOrder.companyName!,
@@ -284,10 +308,10 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
             });
           }
         } else {
-          simulateBotResponse("ההזמנה בוטלה.", 'INIT', [{label: 'התחל מחדש', value: 'התחל'}]);
+          simulateBotResponse("ההזמנה בוטלה.", 'INIT', [{ label: 'התחל מחדש', value: 'התחל' }]);
         }
         break;
-        
+
       case 'DONE':
       case 'INIT':
         setStep('QTY');
@@ -303,21 +327,21 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
       setIsRecording(false);
       addMessage("🎤 הודעה קולית (0:07)", 'user', 'audio');
       setIsTyping(true);
-      
+
       setTimeout(() => {
         setIsTyping(false);
         setTempOrder(prev => ({
-           ...prev,
-           companyName: prev.companyName || 'לקוח לא מזוהה',
-           siteContactName: prev.siteContactName || 'משתמש קולי',
-           quantity: 12,
-           grade: 'B30',
-           address: 'דיזנגוף 50, תל אביב',
-           deliveryTime: 'מחר בבוקר',
-           pumpRequired: true
+          ...prev,
+          companyName: prev.companyName || 'לקוח לא מזוהה',
+          siteContactName: prev.siteContactName || 'משתמש קולי',
+          quantity: 12,
+          grade: 'B30',
+          address: 'דיזנגוף 50, תל אביב',
+          deliveryTime: 'מחר בבוקר',
+          pumpRequired: true
         }));
         setStep('CONFIRM');
-        
+
         const summary = `
 *זיהיתי מההקלטה:* 🎙️
 כמות: 12 קוב
@@ -349,7 +373,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
           <User size={14} />
           <span>מדמה שיחה מאת:</span>
         </div>
-        <select 
+        <select
           value={currentPersona.phone}
           onChange={(e) => setCurrentPersona(SIMULATION_PERSONAS.find(p => p.phone === e.target.value) || SIMULATION_PERSONAS[0])}
           className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs outline-none focus:border-green-500"
@@ -370,54 +394,53 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
         </button>
         <div className="flex items-center flex-1 cursor-pointer">
           <div className="relative">
-             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-[#008069] ml-3 border border-gray-200">
-                <Truck size={24} />
-             </div>
-             <div className="absolute bottom-0 left-3 w-3 h-3 bg-green-400 rounded-full border-2 border-[#008069]"></div>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-[#008069] ml-3 border border-gray-200">
+              <Truck size={24} />
+            </div>
+            <div className="absolute bottom-0 left-3 w-3 h-3 bg-green-400 rounded-full border-2 border-[#008069]"></div>
           </div>
           <div className="flex flex-col">
             <h2 className="font-bold text-base leading-tight">בטון סבאג - בוט הזמנות</h2>
             <p className="text-xs opacity-80 leading-tight">
-               {isTyping ? 'מקליד/ה...' : 'עסקים (Business Account)'}
+              {isTyping ? 'מקליד/ה...' : 'עסקים (Business Account)'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Chat Area */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 bg-[#E5DDD5] space-y-2"
-        style={{ 
-          backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")', 
+        style={{
+          backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
           backgroundRepeat: 'repeat',
           backgroundSize: '400px'
         }}
       >
         {messages.map((msg) => (
-          <div 
-            key={msg.id} 
+          <div
+            key={msg.id}
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-1`}
           >
-            <div 
-              className={`relative max-w-[85%] min-w-[80px] px-3 py-2 rounded-lg shadow-sm text-sm ${
-                msg.sender === 'user' 
-                  ? 'bg-[#D9FDD3] text-gray-900 rounded-tr-none' 
-                  : 'bg-white text-gray-900 rounded-tl-none'
-              }`}
+            <div
+              className={`relative max-w-[85%] min-w-[80px] px-3 py-2 rounded-lg shadow-sm text-sm ${msg.sender === 'user'
+                ? 'bg-[#D9FDD3] text-gray-900 rounded-tr-none'
+                : 'bg-white text-gray-900 rounded-tl-none'
+                }`}
             >
               {msg.type === 'audio' ? (
-                 <div className="flex items-center gap-3 min-w-[150px]">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                       <Mic size={16} />
-                    </div>
-                    <div className="flex-1">
-                       <div className="h-1 bg-gray-300 rounded w-full mb-1"></div>
-                       <span className="text-xs text-gray-500">0:07</span>
-                    </div>
-                 </div>
+                <div className="flex items-center gap-3 min-w-[150px]">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                    <Mic size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="h-1 bg-gray-300 rounded w-full mb-1"></div>
+                    <span className="text-xs text-gray-500">0:07</span>
+                  </div>
+                </div>
               ) : (
-                 <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
               )}
 
               <div className="flex items-center justify-end gap-1 mt-1 select-none">
@@ -433,12 +456,12 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
             </div>
           </div>
         ))}
-        
+
         {isTyping && (
           <div className="flex justify-start animate-pulse">
-             <div className="bg-white px-4 py-2 rounded-full rounded-tl-none shadow-sm text-gray-500 text-xs italic">
-                מקליד...
-             </div>
+            <div className="bg-white px-4 py-2 rounded-full rounded-tl-none shadow-sm text-gray-500 text-xs italic">
+              מקליד...
+            </div>
           </div>
         )}
       </div>
@@ -446,49 +469,48 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
       {/* Input Area */}
       <div className="bg-[#F0F2F5] p-2">
         {showQuickReplies.length > 0 && (
-           <div className="flex gap-2 overflow-x-auto pb-2 mb-1 scrollbar-hide px-1">
-              {showQuickReplies.map((reply, idx) => (
-                 <button
-                    key={idx}
-                    onClick={() => handleSend(reply.value)}
-                    className="whitespace-nowrap bg-white border border-gray-200 text-[#008069] px-4 py-2 rounded-full text-sm font-medium shadow-sm active:bg-gray-50 transition-colors"
-                 >
-                    {reply.label}
-                 </button>
-              ))}
-           </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-1 scrollbar-hide px-1">
+            {showQuickReplies.map((reply, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSend(reply.value)}
+                className="whitespace-nowrap bg-white border border-gray-200 text-[#008069] px-4 py-2 rounded-full text-sm font-medium shadow-sm active:bg-gray-50 transition-colors"
+              >
+                {reply.label}
+              </button>
+            ))}
+          </div>
         )}
 
         <div className="flex items-end gap-2">
-           <div className="flex-1 bg-white rounded-2xl flex items-center px-4 py-2 shadow-sm border border-white focus-within:border-[#008069] transition-colors">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={isRecording ? "מקליט..." : "הקלד הודעה"}
-                disabled={isRecording}
-                className="flex-1 bg-transparent focus:outline-none text-right text-gray-700 min-h-[24px] max-h-[100px]"
-                dir="rtl"
-              />
-           </div>
+          <div className="flex-1 bg-white rounded-2xl flex items-center px-4 py-2 shadow-sm border border-white focus-within:border-[#008069] transition-colors">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder={isRecording ? "מקליט..." : "הקלד הודעה"}
+              disabled={isRecording}
+              className="flex-1 bg-transparent focus:outline-none text-right text-gray-700 min-h-[24px] max-h-[100px]"
+              dir="rtl"
+            />
+          </div>
 
-           <button 
-             onClick={input.trim() ? () => handleSend() : handleMicClick}
-             className={`p-3 rounded-full shadow-md transition-all flex items-center justify-center ${
-                input.trim() 
-                   ? 'bg-[#008069] text-white hover:bg-[#006d59]' 
-                   : isRecording 
-                      ? 'bg-red-500 text-white animate-pulse scale-110' 
-                      : 'bg-[#008069] text-white'
-             }`}
-           >
-             {input.trim() ? (
-                <Send size={20} className="transform rotate-180 ml-0.5" />
-             ) : (
-                <Mic size={20} />
-             )}
-           </button>
+          <button
+            onClick={input.trim() ? () => handleSend() : handleMicClick}
+            className={`p-3 rounded-full shadow-md transition-all flex items-center justify-center ${input.trim()
+              ? 'bg-[#008069] text-white hover:bg-[#006d59]'
+              : isRecording
+                ? 'bg-red-500 text-white animate-pulse scale-110'
+                : 'bg-[#008069] text-white'
+              }`}
+          >
+            {input.trim() ? (
+              <Send size={20} className="transform rotate-180 ml-0.5" />
+            ) : (
+              <Mic size={20} />
+            )}
+          </button>
         </div>
       </div>
     </div>
