@@ -1,6 +1,6 @@
 import { Order, Vehicle, User, Customer, Product, PriceList } from '../../types';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = 'https://concreteflow.onrender.com/api';
 
 export const api = {
     // Orders
