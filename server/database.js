@@ -3,6 +3,9 @@ import { MongoClient } from 'mongodb';
 const uri = process.env.MONGODB_URI || 'mongodb+srv://amrsaf01_db_user:I6KDdFr24be0BccE@concreteflow.jw02uki.mongodb.net/?appName=concreteflow';
 
 const client = new MongoClient(uri, {
+    tls: true,
+    tlsAllowInvalidCertificates: true, // Force allow invalid certs
+    tlsInsecure: true, // Force insecure TLS
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
 });
