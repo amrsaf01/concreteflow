@@ -79,6 +79,24 @@
       "role": "driver"
     }
   ],
+  "users": [
+    {
+      "id": "U-001",
+      "username": "admin",
+      "name": "Admin User",
+      "role": "owner",
+      "password": "admin123",
+      "lastLogin": null
+    },
+    {
+      "id": "U-1763942573716",
+      "lastLogin": null,
+      "username": "autodriver",
+      "name": "AutoDriver",
+      "role": "driver",
+      "password": "123"
+    }
+  ],
   "customers": [
     {
       "id": "C-1763942238927",
