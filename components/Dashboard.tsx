@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Order, Vehicle } from '../types';
 import {
   LayoutDashboard,
@@ -13,11 +13,13 @@ import {
   Activity,
   Calendar as CalendarIcon,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Edit2
 } from 'lucide-react';
 import { LiveOperations } from './LiveOperations';
 import { DispatchCalendar } from './DispatchCalendar';
 import { AssignmentModal } from './AssignmentModal';
+import { EditOrderModal } from './EditOrderModal';
 import { Reports } from './Reports';
 import { WaitingQueueWidget } from './WaitingQueueWidget';
 import { analyzeOrder, getOrderProgress } from '../src/utils/smartDispatch';
@@ -51,9 +53,14 @@ export function Dashboard({
 }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'calendar' | 'reports'>('overview');
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedOrderForAssignment, setSelectedOrderForAssignment] = useState<Order | null>(null);
+  const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
   const [showApproveMenu, setShowApproveMenu] = useState<string | null>(null);
   const [tickerIndex, setTickerIndex] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [lastOrderCount, setLastOrderCount] = useState(orders.length);
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
 
   // Calculate Stats
   const pendingOrders = orders.filter(o => o.status === 'pending');
@@ -79,16 +86,36 @@ export function Dashboard({
     { type: 'status', text: `🚛 ${activeVehicles.length} רכבים פעילים כרגע` }
   ];
 
+  // Clock & Ticker Effect
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerIndex(prev => (prev + 1) % tickerEvents.length);
-    }, 5000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+      setTickerIndex(prev => (prev + 1) % (tickerEvents.length || 1));
+    }, 1000); // Update clock every second, ticker logic handled inside
+    return () => clearInterval(timer);
   }, [tickerEvents.length]);
+
+  // New Order Alert Effect
+  useEffect(() => {
+    if (orders.length > lastOrderCount) {
+      setShowNewOrderAlert(true);
+      // Play sound (optional, browser policy might block)
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(e => console.log('Audio play failed', e));
+
+      setTimeout(() => setShowNewOrderAlert(false), 5000);
+    }
+    setLastOrderCount(orders.length);
+  }, [orders.length, lastOrderCount]);
 
   const handleOpenAssignment = (order: Order) => {
     setSelectedOrderForAssignment(order);
     setIsAssignmentModalOpen(true);
+  };
+
+  const handleOpenEdit = (order: Order) => {
+    setSelectedOrderForEdit(order);
+    setIsEditModalOpen(true);
   };
 
   const handleConfirmAssignment = (vehicleIds: string[]) => {
@@ -97,6 +124,12 @@ export function Dashboard({
       setIsAssignmentModalOpen(false);
       setSelectedOrderForAssignment(null);
     }
+  };
+
+  const handleSaveEdit = (orderId: string, updates: Partial<Order>) => {
+    onUpdateOrder(orderId, updates);
+    setIsEditModalOpen(false);
+    setSelectedOrderForEdit(null);
   };
 
   // Timeline View Components
@@ -172,6 +205,7 @@ export function Dashboard({
                             `}
                             style={{ left: `${left}%`, width: `${width}%` }}
                             title={`${order.companyName} - ${order.status}`}
+                            onClick={() => handleOpenEdit(order)}
                           >
                             <span className="truncate">{order.companyName}</span>
                           </div>
@@ -190,6 +224,16 @@ export function Dashboard({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans" dir="rtl">
+      {/* New Order Alert Overlay */}
+      {showNewOrderAlert && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top duration-300">
+          <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 font-bold text-lg">
+            <Bell className="animate-bounce" />
+            התקבלה הזמנה חדשה!
+          </div>
+        </div>
+      )}
+
       {/* Pulse Bar (Top) */}
       <div className="bg-slate-900 text-white text-sm py-2 px-4 flex justify-between items-center overflow-hidden">
         <div className="flex items-center gap-4 shrink-0">
@@ -209,20 +253,25 @@ export function Dashboard({
         </div>
 
         <div className="flex items-center gap-4 shrink-0 text-slate-400 text-xs">
-          <span>{new Date().toLocaleDateString('he-IL')}</span>
-          <span>{new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>
+          <span>{currentTime.toLocaleDateString('he-IL')}</span>
         </div>
       </div>
 
-      {/* Main Header */}
+      {/* Main Header with War Room Clock */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
+          <div className="flex justify-between items-center h-20"> {/* Increased height for clock */}
+            <div className="flex items-center gap-6">
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <LayoutDashboard className="text-blue-600" />
                 ConcreteFlow
               </h1>
+
+              {/* War Room Clock */}
+              <div className="hidden lg:flex items-center gap-2 bg-black text-green-500 font-mono text-3xl px-4 py-2 rounded-lg shadow-inner border border-slate-700 tracking-widest">
+                {currentTime.toLocaleTimeString('he-IL', { hour12: false })}
+              </div>
+
               <div className="hidden md:flex bg-slate-100 rounded-lg p-1">
                 <button
                   onClick={() => setActiveTab('overview')}
@@ -240,7 +289,7 @@ export function Dashboard({
                     : 'text-slate-500 hover:text-slate-700'
                     }`}
                 >
-                  ציר זמן (חדש)
+                  ציר זמן
                 </button>
                 <button
                   onClick={() => setActiveTab('calendar')}
@@ -265,12 +314,12 @@ export function Dashboard({
 
             <div className="flex items-center gap-4">
               <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors relative">
-                <Bell size={20} />
+                <Bell size={24} />
                 {(pendingOrders.length > 0 || alerts.length > 0) && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-white" />
                 )}
               </button>
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-xs">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
                 מנ
               </div>
             </div>
@@ -401,20 +450,29 @@ export function Dashboard({
                             </div>
                           </div>
                         </div>
-                        <div className="text-left">
-                          <div className="text-sm font-medium text-slate-900">
-                            {(order.deliveryTime || '').split('T')[1] || '??:??'}
-                          </div>
-                          <div className={`text-xs px-2 py-0.5 rounded-full inline-block ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                            order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                              'bg-blue-100 text-blue-700'
-                            }`}>
-                            {order.status === 'pending' ? 'ממתין לאישור' :
-                              order.status === 'approved' ? 'מאושר' :
-                                order.status === 'en_route' ? 'בדרך' :
-                                  order.status === 'at_site' ? 'באתר' :
-                                    order.status === 'pouring' ? 'יוצק' :
-                                      'הושלם'}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(order)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                            title="ערוך הזמנה"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <div className="text-left">
+                            <div className="text-sm font-medium text-slate-900">
+                              {(order.deliveryTime || '').split('T')[1] || '??:??'}
+                            </div>
+                            <div className={`text-xs px-2 py-0.5 rounded-full inline-block ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                              order.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}>
+                              {order.status === 'pending' ? 'ממתין לאישור' :
+                                order.status === 'approved' ? 'מאושר' :
+                                  order.status === 'en_route' ? 'בדרך' :
+                                    order.status === 'at_site' ? 'באתר' :
+                                      order.status === 'pouring' ? 'יוצק' :
+                                        'הושלם'}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -532,6 +590,13 @@ export function Dashboard({
                             </div>
 
                             <button
+                              onClick={() => handleOpenEdit(order)}
+                              className="px-3 py-2 border border-slate-200 rounded hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors text-slate-400"
+                              title="ערוך"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
                               onClick={() => onRejectOrder(order.id)}
                               className="px-3 py-2 border border-slate-200 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors text-slate-400"
                             >
@@ -580,6 +645,14 @@ export function Dashboard({
         onConfirm={handleConfirmAssignment}
         order={selectedOrderForAssignment}
         vehicles={vehicles}
+      />
+
+      {/* Edit Order Modal */}
+      <EditOrderModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSaveEdit}
+        order={selectedOrderForEdit}
       />
     </div >
   );
