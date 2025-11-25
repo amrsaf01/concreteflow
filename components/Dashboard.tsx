@@ -339,7 +339,35 @@ export function Dashboard({
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors relative">
+              <button
+                onClick={() => {
+                  if (!('Notification' in window)) {
+                    alert('הדפדפן שלך לא תומך בהתראות');
+                    return;
+                  }
+
+                  if (Notification.permission === 'granted') {
+                    new Notification('בדיקת התראות 🔔', {
+                      body: 'ההתראות עובדות מצוין!',
+                      icon: '/vite.svg'
+                    });
+                  } else {
+                    Notification.requestPermission().then(permission => {
+                      if (permission === 'granted') {
+                        new Notification('ההתראות הופעלו! 🚀', {
+                          body: 'מעכשיו תקבל עדכונים בזמן אמת',
+                          icon: '/vite.svg'
+                        });
+                      }
+                    });
+                  }
+                }}
+                className={`p-2 transition-colors relative rounded-full ${'Notification' in window && Notification.permission === 'granted'
+                    ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                    : 'text-slate-400 hover:text-blue-600 hover:bg-slate-100'
+                  }`}
+                title={'Notification' in window && Notification.permission === 'granted' ? 'התראות פעילות (לחץ לבדיקה)' : 'לחץ להפעלת התראות'}
+              >
                 <Bell size={24} />
                 {(pendingOrders.length > 0 || alerts.length > 0) && (
                   <span className="absolute top-1.5 right-1.5 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-white" />
