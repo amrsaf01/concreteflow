@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, Vehicle } from '../types';
 import {
   LayoutDashboard,
@@ -9,13 +9,18 @@ import {
   Clock,
   AlertCircle,
   MapPin,
-  Package
+  Package,
+  Activity,
+  Calendar as CalendarIcon,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import { LiveOperations } from './LiveOperations';
 import { DispatchCalendar } from './DispatchCalendar';
 import { AssignmentModal } from './AssignmentModal';
 import { Reports } from './Reports';
 import { WaitingQueueWidget } from './WaitingQueueWidget';
+import { analyzeOrder, getOrderProgress } from '../src/utils/smartDispatch';
 
 interface DashboardProps {
   orders: Order[];
@@ -44,10 +49,11 @@ export function Dashboard({
   onNavigateToCalendar,
   onNavigateToDrivers
 }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'calendar' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'calendar' | 'reports'>('overview');
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [selectedOrderForAssignment, setSelectedOrderForAssignment] = useState<Order | null>(null);
-  const [showApproveMenu, setShowApproveMenu] = useState<string | null>(null); // orderId with open menu
+  const [showApproveMenu, setShowApproveMenu] = useState<string | null>(null);
+  const [tickerIndex, setTickerIndex] = useState(0);
 
   // Calculate Stats
   const pendingOrders = orders.filter(o => o.status === 'pending');
@@ -56,17 +62,29 @@ export function Dashboard({
     .filter(o => o.status === 'completed')
     .reduce((sum, o) => sum + o.quantity, 0);
 
-  // Upcoming Orders for Widget
-  const now = new Date();
-  const next4Hours = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-  const upcomingOrders = orders.filter(o => {
-    const orderDate = new Date(o.deliveryTime);
-    return orderDate > now && orderDate < next4Hours && o.status !== 'rejected' && o.status !== 'completed';
-  }).sort((a, b) => new Date(a.deliveryTime).getTime() - new Date(b.deliveryTime).getTime());
+  // Smart Alerts
+  const activeOrders = orders.filter(o => ['en_route', 'at_site', 'pouring'].includes(o.status));
+  const alerts = activeOrders.map(order => {
+    const analysis = analyzeOrder(order);
+    if (analysis.alertLevel !== 'none') {
+      return { order, analysis };
+    }
+    return null;
+  }).filter(Boolean);
 
-  const handleSendReminder = (orderId: string) => {
-    alert(`נשלחה תזכורת בוקר ללקוח (SMS + WhatsApp) עבור הזמנה ${orderId}`);
-  };
+  // Ticker Events
+  const tickerEvents = [
+    ...alerts.map(a => ({ type: 'alert', text: `⚠️ ${a?.order.companyName}: ${a?.analysis.alertMessage}` })),
+    ...pendingOrders.map(o => ({ type: 'info', text: `🔔 הזמנה חדשה: ${o.companyName} (${o.quantity} מ"ק)` })),
+    { type: 'status', text: `🚛 ${activeVehicles.length} רכבים פעילים כרגע` }
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerIndex(prev => (prev + 1) % tickerEvents.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [tickerEvents.length]);
 
   const handleOpenAssignment = (order: Order) => {
     setSelectedOrderForAssignment(order);
@@ -81,16 +99,129 @@ export function Dashboard({
     }
   };
 
+  // Timeline View Components
+  const TimelineView = () => {
+    const hours = Array.from({ length: 12 }, (_, i) => i + 6); // 06:00 to 18:00
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+          <h2 className="font-bold text-lg flex items-center gap-2">
+            <Activity className="text-blue-600" />
+            ציר זמן תפעולי (Timeline)
+          </h2>
+          <div className="flex gap-4 text-sm">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500 rounded"></span> בדרך</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded"></span> יוצק</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-purple-500 rounded"></span> משאבה</span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="min-w-[800px] p-4">
+            {/* Time Header */}
+            <div className="flex border-b border-slate-100 pb-2 mb-4">
+              <div className="w-32 shrink-0"></div>
+              <div className="flex-1 relative h-6">
+                {hours.map(hour => (
+                  <div key={hour} className="absolute text-xs text-slate-400 transform -translate-x-1/2" style={{ left: `${((hour - 6) / 12) * 100}%` }}>
+                    {hour}:00
+                  </div>
+                ))}
+                {/* Current Time Indicator */}
+                {currentHour >= 6 && currentHour <= 18 && (
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+                    style={{ left: `${((currentHour - 6) / 12) * 100}%`, height: '100vh' }}
+                  >
+                    <div className="absolute -top-1 -left-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Vehicle Rows */}
+            <div className="space-y-4">
+              {activeVehicles.map(vehicle => {
+                const vehicleOrders = orders.filter(o =>
+                  (o.assignedVehicleIds?.includes(vehicle.id) || o.id === vehicle.currentOrderId) &&
+                  ['en_route', 'at_site', 'pouring', 'completed'].includes(o.status)
+                );
+
+                return (
+                  <div key={vehicle.id} className="flex items-center group hover:bg-slate-50 rounded-lg p-2 transition-colors">
+                    <div className="w-32 shrink-0">
+                      <div className="font-bold text-slate-800">{vehicle.vehicleNumber}</div>
+                      <div className="text-xs text-slate-500">{vehicle.driverName}</div>
+                    </div>
+                    <div className="flex-1 relative h-10 bg-slate-100 rounded-lg overflow-hidden">
+                      {vehicleOrders.map(order => {
+                        // Mock start time for visualization if not real
+                        const startHour = order.startTime ? new Date(order.startTime).getHours() : 8;
+                        const duration = 2; // Mock duration in hours
+                        const left = ((startHour - 6) / 12) * 100;
+                        const width = (duration / 12) * 100;
+
+                        return (
+                          <div
+                            key={order.id}
+                            className={`absolute top-1 bottom-1 rounded px-2 text-xs text-white flex items-center overflow-hidden cursor-pointer hover:opacity-90 transition-opacity
+                              ${order.status === 'pouring' ? 'bg-emerald-500' : 'bg-blue-500'}
+                            `}
+                            style={{ left: `${left}%`, width: `${width}%` }}
+                            title={`${order.companyName} - ${order.status}`}
+                          >
+                            <span className="truncate">{order.companyName}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans" dir="rtl">
-      {/* Header */}
+      {/* Pulse Bar (Top) */}
+      <div className="bg-slate-900 text-white text-sm py-2 px-4 flex justify-between items-center overflow-hidden">
+        <div className="flex items-center gap-4 shrink-0">
+          <span className="font-bold text-blue-400 flex items-center gap-1">
+            <Activity size={14} /> מרכז שליטה
+          </span>
+          <div className="h-4 w-px bg-slate-700"></div>
+        </div>
+
+        {/* Live Ticker */}
+        <div className="flex-1 mx-8 relative h-5 overflow-hidden">
+          {tickerEvents.length > 0 && (
+            <div key={tickerIndex} className="animate-in slide-in-from-bottom duration-500 absolute inset-0 flex items-center justify-center">
+              {tickerEvents[tickerIndex].text}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0 text-slate-400 text-xs">
+          <span>{new Date().toLocaleDateString('he-IL')}</span>
+          <span>{new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      </div>
+
+      {/* Main Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <LayoutDashboard className="text-blue-600" />
-                מרכז שליטה
+                ConcreteFlow
               </h1>
               <div className="hidden md:flex bg-slate-100 rounded-lg p-1">
                 <button
@@ -101,6 +232,15 @@ export function Dashboard({
                     }`}
                 >
                   מבט על
+                </button>
+                <button
+                  onClick={() => setActiveTab('timeline')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'timeline'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                  ציר זמן (חדש)
                 </button>
                 <button
                   onClick={() => setActiveTab('calendar')}
@@ -124,19 +264,9 @@ export function Dashboard({
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Schedule Widget */}
-              {upcomingOrders.length > 0 && (
-                <div className="hidden lg:flex items-center gap-3 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
-                  <Clock size={14} className="text-blue-600" />
-                  <span className="text-xs font-medium text-blue-800">
-                    הבא: {upcomingOrders[0].companyName} ({upcomingOrders[0].quantity} מ"ק) ב-{(upcomingOrders[0].deliveryTime || '').split('T')[1] || '??:??'}
-                  </span>
-                </div>
-              )}
-
               <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors relative">
                 <Bell size={20} />
-                {pendingOrders.length > 0 && (
+                {(pendingOrders.length > 0 || alerts.length > 0) && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}
               </button>
@@ -149,6 +279,26 @@ export function Dashboard({
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Smart Alerts Banner */}
+        {alerts.length > 0 && (
+          <div className="mb-8 space-y-2">
+            {alerts.map((alert, idx) => (
+              <div key={idx} className={`p-4 rounded-xl border flex items-center justify-between ${alert?.analysis.alertLevel === 'critical'
+                  ? 'bg-red-50 border-red-200 text-red-800'
+                  : 'bg-orange-50 border-orange-200 text-orange-800'
+                }`}>
+                <div className="flex items-center gap-3">
+                  <AlertCircle />
+                  <span className="font-bold">{alert?.order.companyName}:</span>
+                  <span>{alert?.analysis.alertMessage}</span>
+                </div>
+                <button className="text-sm font-bold underline hover:opacity-80">טפל בבעיה</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === 'overview' ? (
           <div className="space-y-8">
             {/* Stats Row */}
@@ -387,13 +537,6 @@ export function Dashboard({
                             >
                               <AlertCircle size={14} />
                             </button>
-                            <button
-                              onClick={() => handleSendReminder(order.id)}
-                              className="px-3 py-2 border border-slate-200 rounded hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors text-slate-400"
-                              title="שלח תזכורת"
-                            >
-                              <Bell size={14} />
-                            </button>
                           </div>
                         </div>
                       ))
@@ -416,6 +559,8 @@ export function Dashboard({
               </div>
             </div>
           </div>
+        ) : activeTab === 'timeline' ? (
+          <TimelineView />
         ) : activeTab === 'calendar' ? (
           <DispatchCalendar
             orders={orders}

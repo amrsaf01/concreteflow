@@ -34,6 +34,12 @@ export interface Order {
 
   // Notification flags
   remindersSent?: boolean;
+
+  // Time Tracking (Control Center 2.0)
+  startTime?: string;        // ISO string - when status changed to 'en_route'
+  estimatedEndTime?: string; // ISO string - calculated ETA
+  actualEndTime?: string;    // ISO string - when status changed to 'completed'
+  alertLevel?: 'none' | 'warning' | 'critical';
 }
 
 export interface Vehicle {
