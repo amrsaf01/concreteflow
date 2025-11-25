@@ -102,13 +102,32 @@ export function Dashboard({
     }
   }, [tickerEvents.length, tickerIndex]);
 
+  // Request Notification Permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // New Order Alert Effect
   useEffect(() => {
     if (orders.length > lastOrderCount) {
       setShowNewOrderAlert(true);
-      // Play sound (optional, browser policy might block)
+
+      // Play sound
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
       audio.play().catch(e => console.log('Audio play failed', e));
+
+      // System Notification (Desktop Alert)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const newOrdersCount = orders.length - lastOrderCount;
+        const latestOrder = orders[orders.length - 1]; // Assuming new ones are at the end
+        new Notification('הזמנה חדשה התקבלה! 🔔', {
+          body: `${latestOrder.companyName} הזמין ${latestOrder.quantity} מ"ק בטון`,
+          icon: '/vite.svg', // Or any other icon
+          tag: 'new-order'
+        });
+      }
 
       setTimeout(() => setShowNewOrderAlert(false), 5000);
     }
