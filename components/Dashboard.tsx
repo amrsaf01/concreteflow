@@ -95,6 +95,13 @@ export function Dashboard({
     return () => clearInterval(timer);
   }, [tickerEvents.length]);
 
+  // Reset ticker index if out of bounds
+  useEffect(() => {
+    if (tickerIndex >= tickerEvents.length) {
+      setTickerIndex(0);
+    }
+  }, [tickerEvents.length, tickerIndex]);
+
   // New Order Alert Effect
   useEffect(() => {
     if (orders.length > lastOrderCount) {
@@ -247,7 +254,7 @@ export function Dashboard({
         <div className="flex-1 mx-8 relative h-5 overflow-hidden">
           {tickerEvents.length > 0 && (
             <div key={tickerIndex} className="animate-in slide-in-from-bottom duration-500 absolute inset-0 flex items-center justify-center">
-              {tickerEvents[tickerIndex].text}
+              {tickerEvents[tickerIndex]?.text || ''}
             </div>
           )}
         </div>
@@ -334,8 +341,8 @@ export function Dashboard({
           <div className="mb-8 space-y-2">
             {alerts.map((alert, idx) => (
               <div key={idx} className={`p-4 rounded-xl border flex items-center justify-between ${alert?.analysis.alertLevel === 'critical'
-                  ? 'bg-red-50 border-red-200 text-red-800'
-                  : 'bg-orange-50 border-orange-200 text-orange-800'
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : 'bg-orange-50 border-orange-200 text-orange-800'
                 }`}>
                 <div className="flex items-center gap-3">
                   <AlertCircle />
