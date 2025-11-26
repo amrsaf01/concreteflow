@@ -424,7 +424,7 @@ function AuthenticatedApp() {
 
 function App() {
   // Check if we're on the public order page
-  const isPublicOrderPage = window.location.pathname === '/order';
+  const isPublicOrderPage = window.location.pathname.startsWith('/order');
 
   if (isPublicOrderPage) {
     return <PublicOrderPage />;

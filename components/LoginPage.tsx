@@ -94,7 +94,7 @@ export const LoginPage: React.FC = () => {
                     &copy; {new Date().getFullYear()} ConcreteFlow. כל הזכויות שמורות.
                     <br />
                     <div className="mt-8 text-center text-sm text-slate-400">
-                        גרסה: 2.1.5 (Notification Fix: {new Date().toLocaleTimeString('he-IL')})
+                        גרסה: 2.2.0 (Rebrand: {new Date().toLocaleTimeString('he-IL')})
                     </div>
                 </div>
             </div>

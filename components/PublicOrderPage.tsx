@@ -37,7 +37,7 @@ export const PublicOrderPage: React.FC = () => {
                             <Truck size={32} className="text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-900">בטון סבאג</h1>
+                            <h1 className="text-2xl font-bold text-slate-900">מפעל הבטון</h1>
                             <p className="text-sm text-slate-500">הזמנת בטון מהירה ופשוטה</p>
                         </div>
                     </div>
@@ -110,7 +110,8 @@ export const PublicOrderPage: React.FC = () => {
                 {/* Footer */}
                 <div className="text-center mt-8 text-slate-500 text-sm">
                     <p>יש שאלות? צור קשר: 050-0000000</p>
-                    <p className="mt-2">&copy; {new Date().getFullYear()} בטון סבאג - כל הזכויות שמורות</p>
+                    <p className="mt-2">&copy; {new Date().getFullYear()} מפעל הבטון - כל הזכויות שמורות</p>
+                    <p className="text-xs text-slate-300 mt-1">v2.2.0</p>
                 </div>
             </main>
         </div>

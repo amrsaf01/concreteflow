@@ -82,7 +82,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
         setStep('QTY');
       } else {
         // Unknown Client Flow (Privacy Mode - Don't leak names)
-        addMessage("שלום! ברוך הבא להזמנות בטון סבאג. 🏗️\nלא זיהיתי את המספר במערכת.\n\nאיך לקרוא לך?", 'bot');
+        addMessage("שלום! ברוך הבא להזמנות מפעל הבטון. 🏗️\nלא זיהיתי את המספר במערכת.\n\nאיך לקרוא לך?", 'bot');
         setStep('IDENTIFY_NAME');
       }
     }, 1000);
@@ -400,7 +400,7 @@ export const BotSimulator: React.FC<BotSimulatorProps> = ({ onOrderCreated, onBa
             <div className="absolute bottom-0 left-3 w-3 h-3 bg-green-400 rounded-full border-2 border-[#008069]"></div>
           </div>
           <div className="flex flex-col">
-            <h2 className="font-bold text-base leading-tight">בטון סבאג - בוט הזמנות</h2>
+            <h2 className="font-bold text-base leading-tight">מפעל הבטון - בוט הזמנות</h2>
             <p className="text-xs opacity-80 leading-tight">
               {isTyping ? 'מקליד/ה...' : 'עסקים (Business Account)'}
             </p>

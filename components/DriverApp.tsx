@@ -113,7 +113,7 @@ export const DriverApp: React.FC<DriverAppProps> = ({ vehicles, orders, onUpdate
             <Truck size={40} className="text-blue-600" />
           </div>
           <h1 className="text-2xl font-bold text-slate-800 mb-2">ברוכים הבאים</h1>
-          <p className="text-slate-500 mb-8">מערכת נהגים - בטון סבאג</p>
+          <p className="text-slate-500 mb-8">מערכת נהגים - מפעל הבטון</p>
 
           <div className="space-y-3">
             <label className="block text-right font-medium text-slate-700">בחר רכב להתחברות:</label>
